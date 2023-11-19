@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from mail_notification.connection import MailConfig
 from datetime import datetime, timedelta
 from django.conf import settings
-from .helper import EmailBackend
+from .helper import EmailBackend,calculate_distance
 from googlemaps import Client as GoogleMaps
 from django.utils.decorators import method_decorator
 from .permissions import CustomIsauthenticated,DriverCustomIsauthenticated,HospitalCustomIsauthenticated
@@ -24,6 +24,7 @@ mycol1 = mydb['app_driver_entry']
 mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
 tokens = mydb['tokens']
+
 
 
 
@@ -130,44 +131,74 @@ class LoginView(APIView):
 
 
 class NearHospitalsList(APIView):
-    permission_classes = [CustomIsauthenticated]
-    @method_decorator(token_required)
     def get(self, request):
         latitude = request.data.get("latitude")
         longitude = request.data.get("longitude")
-
+ 
         api_key = 'AIzaSyBO0HZnIuHmIB7qalDQ-jTsT4bXbkcFLZM'
         gmaps = GoogleMaps(api_key)
-
+ 
         radius = 5000
         location = (latitude, longitude)
-
+ 
         url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius={radius}&type=hospital&key={api_key}"
-
+ 
         response = requests.get(url)
-
+ 
         if response.status_code == 200:
             hospitals_data = response.json()
-
+       
             if 'results' in hospitals_data:
                 nearby_hospitals = hospitals_data['results']
-
                 print("\nNearby Hospitals:")
                 hospitals_json = []
                 for hospital in nearby_hospitals:
                     hospital_name = hospital['name']
+                    hospital_opening_hours = hospital.get('opening_hours', {}).get('open_now', None)
                     hospital_location = hospital['geometry']['location']
                     hospital_lat = hospital_location['lat']
                     hospital_lng = hospital_location['lng']
+ 
+                    ambulance_avb = mycol2.find_one({"hospital_name":hospital_name})
+                    if ambulance_avb is not None:
+                        ambulance = "False" if ambulance_avb['no_of_ambulances'] =="0" else "True"
+                    else:
+                        ambulance = "hospital not rejected"
+ 
                     hospital_info = {
                         "name": hospital_name,
                         "latitude": hospital_lat,
-                        "longitude": hospital_lng
+                        "longitude": hospital_lng,
+                        "open_now": str(hospital_opening_hours) if hospital_opening_hours else 'Not available',
+                        "ambulance_available": ambulance
                     }
                     hospitals_json.append(hospital_info)
-
+ 
                 return Response(hospitals_json, status=status.HTTP_200_OK)
             else:
                 return Response({"message": "No hospital data found in the specified radius."}, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({"message": "Failed to fetch data from Google Places API."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    
+
+class DistanceAPICall(APIView): # it's used to show the distance in kilometers
+    def get(self, request):
+        data = request.data
+        lat1 = data.get('lat1')
+        lon1 = data.get('lon1')
+        lat2 = data.get('lat2')
+        lon2 = data.get('lon2')
+
+        if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
+            return Response({"message": "Latitude or longitude values are missing."}, status=400)
+
+        distance,maps_link = calculate_distance(lat1, lon1, lat2, lon2)
+        if distance is not None:
+            return Response({
+                "distance": distance,
+                "location": maps_link
+            })
+        
+        else:
+            return Response({"message": "Failed to calculate distance."}, status=500)

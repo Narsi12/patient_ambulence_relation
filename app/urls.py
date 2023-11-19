@@ -1,11 +1,12 @@
 from django.urls import path
-from .views import LoginView,RegistrationAPIView,NearHospitalsList
+from .views import LoginView,RegistrationAPIView,NearHospitalsList,DistanceAPICall
 
 
 urlpatterns = [
     path('login_view/', LoginView.as_view()),
     path(r'register_user/', RegistrationAPIView.as_view(), name='Register'), 
-    path(r'near_hospitals_list/', NearHospitalsList.as_view(), name='Register')
+    path(r'near_hospitals_list/', NearHospitalsList.as_view(), name='Register'),
+    path(r'distance/', DistanceAPICall.as_view(), name='Register')
     
     ]
 
