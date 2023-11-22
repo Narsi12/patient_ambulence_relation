@@ -86,7 +86,7 @@ class RegistrationAPIView(APIView):
     
 
 
-class LoginView(APIView):
+class Login_View(APIView):
     def post(self,request):
         data = request.data
         email = data.get('email',None)
@@ -190,7 +190,7 @@ class NearHospitalsList(APIView):
         
 
 
-class HospitalsLiveLocation(APIView):
+class get_address_from_long_lat(APIView):
     @address_decorator
     def get(self, request, latitude, longitude, result):
         return JsonResponse({"latitude": latitude, "longitude": longitude, "address": result})
@@ -200,7 +200,7 @@ class HospitalsLiveLocation(APIView):
         
 
 
-class get_hospital_details_single(APIView):
+class get_hospital_details(APIView):
     def get(self,request,hospital_name=None):
         lat1 = request.GET.get('latitude', None)
         lon1 = request.GET.get('longitude', None)
