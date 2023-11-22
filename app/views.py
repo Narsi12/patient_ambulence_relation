@@ -377,6 +377,7 @@ class RaiseRequest(APIView):
                     "maps_link": maps_link
                 },
                 "distance": distance,
+                "status":"in progress"
             })
 
             return Response(data)
@@ -397,10 +398,13 @@ class hospital_Dash_bord(APIView):
                     'latitude': patient['registered_location']['latitude'],
                     'longitude': patient['registered_location']['longitude']
                 },
+                'status':patient['status'],
                 'route_map': {
                     'maps_link': patient['route_map']['maps_link']
                 },
                 'distance': patient['distance'],
+
+                
             }
             complete_info.append(patient_info)
         
@@ -430,5 +434,8 @@ class hospital_request_Accept(APIView):
             return Response({'msg': 'User request is accepted'})
         else:
             return Response({'error': 'User request not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 
 
