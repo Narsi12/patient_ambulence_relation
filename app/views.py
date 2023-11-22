@@ -48,9 +48,9 @@ class RegistrationAPIView(APIView):
         
          # Hash the password
         hashed_password = make_password(password) 
-        request.data['password'] = hashed_password
-        # mutable_data = request.data.copy()
-        # mutable_data['password'] = hashed_password
+        # request.data['password'] = hashed_password
+        mutable_data = request.data.copy()
+        mutable_data['password'] = hashed_password
 
         
         existing_user = USER_Entry.objects.filter(email=email).first() or Driver_Entry.objects.filter(email=email).first() or Hospital.objects.filter(email=email).first()
