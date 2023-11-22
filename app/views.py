@@ -145,8 +145,8 @@ class Login_View(APIView):
 
 class NearHospitalsList(APIView):
     def get(self, request):
-        latitude = request.data.get("latitude")
-        longitude = request.data.get("longitude")
+        latitude = request.GET.get("latitude")
+        longitude = request.GET.get("longitude")
         api_key = 'AIzaSyBO0HZnIuHmIB7qalDQ-jTsT4bXbkcFLZM'
         gmaps = GoogleMaps(api_key)
         radius = 5000
