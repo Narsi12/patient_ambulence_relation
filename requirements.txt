@@ -1,0 +1,13 @@
+django
+django-cors-headers
+djangorestframework
+djongo
+mouritech-mail-notification==0.0.2   
+PyJwt
+drf_yasg
+setuptools
+googlemaps
+pillow
+pymongo==3.12.3
+geopy
+
