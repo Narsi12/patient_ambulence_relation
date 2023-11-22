@@ -25,7 +25,7 @@ from django.core.files.base import ContentFile
 
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["ambluence_db"]
+mydb = myclient["patient"]
 mycol1 = mydb['app_driver_entry']
 mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
@@ -118,9 +118,11 @@ class Login_View(APIView):
             })
 
             collections = [mycol1, mycol2, mycol3]
+             
 
             for collection in collections:
                 details = collection.find_one({"email": email})
+                print(details)
                 if details:
                     usertype = details.get('user_type')
             
