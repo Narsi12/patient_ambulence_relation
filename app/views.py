@@ -122,7 +122,6 @@ class Login_View(APIView):
 
             for collection in collections:
                 details = collection.find_one({"email": email})
-                print(details)
                 if details:
                     usertype = details.get('user_type')
             
@@ -347,6 +346,7 @@ class RaiseRequest(APIView):
         latitude = request.data.get("latitude")
         longitude = request.data.get("longitude")
         hospital = request.data.get("hospital",None)
+        print(hospital)
 
         if hospital is not None:
                 print(hospital)
@@ -358,6 +358,7 @@ class RaiseRequest(APIView):
 
         
         data = {
+            "user_id": user_id,
             "name": user["name"],
             "phone_number": user["phone_number"],
             "registered_location": registered_location,
