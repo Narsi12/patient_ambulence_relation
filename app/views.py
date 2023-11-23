@@ -346,15 +346,18 @@ class RaiseRequest(APIView):
         latitude = request.data.get("latitude")
         longitude = request.data.get("longitude")
         hospital = request.data.get("hospital",None)
-        print(hospital)
+        if not latitude and longitude:
+            return Response({'msg':'latitude and longitude values are missing.! '})
 
         if hospital is not None:
-                print(hospital)
                 data =mycol2.find_one({"hospital_name":hospital})
-                location_dict = data.get('location', {})
-                lat2 = location_dict.get('latitude', None)
-                lon2 = location_dict.get('longitude', None)
-                distance,maps_link = calculate_distance(latitude, longitude, lat2, lon2)
+                if data:
+                    location_dict = data.get('location', {})
+                    lat2 = location_dict.get('latitude', None)
+                    lon2 = location_dict.get('longitude', None)
+                    distance,maps_link = calculate_distance(latitude, longitude, lat2, lon2)
+                else:
+                    return Response({'msg':'hospital name mismatch'})
 
         
         data = {
@@ -366,6 +369,7 @@ class RaiseRequest(APIView):
                 "maps_link":maps_link
             },
             "distance": distance,
+            "hospital_name":hospital
         }
         existing_user = user_requests.find_one({"user_id": user_id})
 
@@ -381,36 +385,49 @@ class RaiseRequest(APIView):
                     "maps_link": maps_link
                 },
                 "distance": distance,
-                "status":"in progress"
+                "status":"in progress",
+                "hospital_name":hospital
             })
 
             return Response(data)
         
 
-
 class hospital_Dash_bord(APIView):
+    permission_classes = [HospitalCustomIsauthenticated]
+
     def get(self, request):
-        user = user_requests.find({})
+        user_id = request.user._id  
+        user = mycol2.find_one({'_id': user_id})
+        hospital_name = user['hospital_name']
+
+        user_req = user_requests.find({})
+
         complete_info = []
         
-        for patient in user:
-            patient_info = {
-                'user_id': str(patient['user_id']),
-                'name': patient['name'],
-                'phone_number': patient['phone_number'],
-                'registered_location': {
-                    'latitude': patient['registered_location']['latitude'],
-                    'longitude': patient['registered_location']['longitude']
-                },
-                'status':patient['status'],
-                'route_map': {
-                    'maps_link': patient['route_map']['maps_link']
-                },
-                'distance': patient['distance'],
-
-                
-            }
-            complete_info.append(patient_info)
+        for patient in user_req:
+            # Check if 'hospital_name' exists in the patient record
+            if 'hospital_name' in patient:
+                if patient['hospital_name'] == hospital_name:
+                    patient_info = {
+                        'user_id': str(patient['user_id']),
+                        'name': patient['name'],
+                        'phone_number': patient['phone_number'],
+                        'registered_location': {
+                            'latitude': patient['registered_location']['latitude'],
+                            'longitude': patient['registered_location']['longitude']
+                        },
+                        'status': patient['status'],
+                        'route_map': {
+                            'maps_link': patient['route_map']['maps_link']
+                        },
+                        'distance': patient['distance'],
+                        'hospital_name': patient['hospital_name']
+                    }
+                    complete_info.append(patient_info)
+                else:
+                    return Response({'msg':'no patient requests'})
+            else:
+                return Response({'msg':'hospital name is missing in user requests'})
         
         return Response(complete_info)
 
@@ -442,14 +459,19 @@ class hospital_request_Accept(APIView):
  
     
 class driver_dashboard(APIView):
-    # permission_classes = [DriverCustomIsauthenticated]
+    permission_classes = [DriverCustomIsauthenticated]
     def get(self, request):
+        driver_id = request.user._id
+        data = mycol1.find_one({'_id': driver_id})
+        hospital_name = data['hospital_name']
+
         user = user_requests.find({})
         complete_info = []
         status_to_filter = "accepted"
 
         for patient in user:
-            if patient.get('status') == status_to_filter:
+             
+            if patient.get('status') == status_to_filter and patient.get('hospital_name') == hospital_name :
                 patient_info = {
                     'user_id': str(patient['user_id']),
                     'name': patient['name'],
@@ -465,7 +487,19 @@ class driver_dashboard(APIView):
                     'distance': patient['distance'],
                 }
                 complete_info.append(patient_info)
+            else:
+                return Response({'msg':'no patients records'})
 
         return Response(complete_info)
+
+
+class driver_ride_start(APIView):
+    permission_classes = [DriverCustomIsauthenticated]
+    def post(self,request):
+        user_id = request.user._id
+        user = mycol3.find_one({"_id": user_id})
+        request_status = "accepted"
+        patient_user_id = request.data.get("patient_user_id", None)
+        
 
 
