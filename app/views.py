@@ -358,7 +358,7 @@ class RaiseRequest(APIView):
 
         
         data = {
-            "user_id": user_id,
+            "user_id": str(user_id),
             "name": user["name"],
             "phone_number": user["phone_number"],
             "registered_location": registered_location,
