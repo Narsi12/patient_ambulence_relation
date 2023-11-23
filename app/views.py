@@ -31,6 +31,8 @@ mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
 tokens = mydb['tokens']
 user_requests = mydb["user_raise_request"]
+get_hospital_collection = mydb["get_hospital_record"]
+
 
 
 
@@ -197,47 +199,71 @@ class get_address_from_long_lat(APIView):
     def get(self, request, latitude, longitude, result):
         return JsonResponse({"latitude": latitude, "longitude": longitude, "address": result})
 
-        
+
+
  
-        
 
 
 class get_hospital_details(APIView):
-    def get(self,request,hospital_name=None):
+    permission_classes = [CustomIsauthenticated]
+
+    def get(self, request, hospital_name=None):
         lat1 = request.GET.get('latitude', None)
         lon1 = request.GET.get('longitude', None)
-       
+        user_id = request.user._id
+        
         try:
             if lat1 is None or lon1 is None:
                 return Response({"message": "Latitude or longitude values are missing."}, status=400)
 
-            # if distance is not None:
             if hospital_name is not None:
-                data =mycol2.find_one({"hospital_name":hospital_name})
+                data = mycol2.find_one({"hospital_name": hospital_name})
                 location_dict = data.get('location', {})
                 lat2 = location_dict.get('latitude', None)
                 lon2 = location_dict.get('longitude', None)
-                distance,maps_link = calculate_distance(lat1, lon1, lat2, lon2)
+                distance, maps_link = calculate_distance(lat1, lon1, lat2, lon2)
                 
                 if distance is not None:
-                    response ={
-                        "hospital_name":hospital_name,
+                    existing_entry = get_hospital_collection.find_one({"user_id": user_id, "hospital_name": hospital_name})
+                    
+                    if existing_entry:
+                        # Check if the user wants to re-enter the record with the status as "reopen"
+                        if existing_entry.get('status') == "reopen":
+                            # Update the status to "user requested" if the status is "reopen"
+                            get_hospital_collection.update_one(
+                                {"user_id": user_id, "hospital_name": hospital_name},
+                                {"$set": {"status": "user requested"}}
+                            )
+                            return Response({"message": "Status updated to 'user requested'."}, status=status.HTTP_200_OK)
+                        else:
+                            return Response({"message": "User already made a request for this hospital. Status should be 'reopen' to update."}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    response = {
+                        "user_id": str(user_id),
+                        "hospital_name": hospital_name,
                         "address": data['location'],
-                        "mobile":data["mobile"],
-                        "landline":data["landline"],
-                        "no_of_ambulances":data["no_of_ambulances"],
+                        "mobile": data["mobile"],
+                        "landline": data["landline"],
+                        "no_of_ambulances": data["no_of_ambulances"],
                         "distance": distance,
-                        "maps_link":maps_link
+                        "maps_link": maps_link,
+                        "status": "user requested"  # Set the status as "user requested" for a new entry
                     }
+                    
+                    get_hospital_collection.insert_one(response)
+                    
                     return Response(response, status=status.HTTP_200_OK)
                 else:
                     return Response({"message": "Failed to calculate distance."}, status=500)
             else:
                 return Response({"message": "No hospital data found in the specified data."}, status=status.HTTP_404_NOT_FOUND)
-       
-            
         except Exception as e:
-            raise APIException(str(e))
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
 
 
  
@@ -294,8 +320,6 @@ class Userprofileview_update(APIView):
                 elif user_type == 'driver':
                     self.permission_classes = [DriverCustomIsauthenticated]
                     driver_data = request.data
-                    # id_card_file = request.FILES.get('id_card')
-                    # hospital_license_file = request.FILES.get('hospital_license')
                     info1 = mycol1.find_one({"_id": user_id})
                     email = info1['email']
                     user = mycol1.find_one_and_update({"_id": user_id,"email":email},
@@ -491,6 +515,9 @@ class driver_dashboard(APIView):
                 return Response({'msg':'no patients records'})
 
         return Response(complete_info)
+
+
+
 
 
 class driver_ride_start(APIView):
