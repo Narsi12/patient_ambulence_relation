@@ -200,68 +200,69 @@ class get_address_from_long_lat(APIView):
         return JsonResponse({"latitude": latitude, "longitude": longitude, "address": result})
 
 
-
- 
-
-
 class get_hospital_details(APIView):
-    permission_classes = [CustomIsauthenticated]
-
-    def get(self, request, hospital_name=None):
+    def post(self,request,hospital_name=None):
         lat1 = request.GET.get('latitude', None)
         lon1 = request.GET.get('longitude', None)
-        user_id = request.user._id
-        
+        print(hospital_name)
+        data =mycol2.find_one({"hospital_name":hospital_name})
+        print(data)
         try:
             if lat1 is None or lon1 is None:
                 return Response({"message": "Latitude or longitude values are missing."}, status=400)
 
+            # if distance is not None:
             if hospital_name is not None:
-                data = mycol2.find_one({"hospital_name": hospital_name})
+                data =mycol2.find_one({"hospital_name":hospital_name})
                 location_dict = data.get('location', {})
                 lat2 = location_dict.get('latitude', None)
                 lon2 = location_dict.get('longitude', None)
-                distance, maps_link = calculate_distance(lat1, lon1, lat2, lon2)
+                distance,maps_link = calculate_distance(lat1, lon1, lat2, lon2)
                 
                 if distance is not None:
-                    existing_entry = get_hospital_collection.find_one({"user_id": user_id, "hospital_name": hospital_name})
-                    
-                    if existing_entry:
-                        # Check if the user wants to re-enter the record with the status as "reopen"
-                        if existing_entry.get('status') == "reopen":
-                            # Update the status to "user requested" if the status is "reopen"
-                            get_hospital_collection.update_one(
-                                {"user_id": user_id, "hospital_name": hospital_name},
-                                {"$set": {"status": "user requested"}}
-                            )
-                            return Response({"message": "Status updated to 'user requested'."}, status=status.HTTP_200_OK)
-                        else:
-                            return Response({"message": "User already made a request for this hospital. Status should be 'reopen' to update."}, status=status.HTTP_400_BAD_REQUEST)
-                    
-                    response = {
-                        "user_id": str(user_id),
-                        "hospital_name": hospital_name,
+                    response ={
+                        "hospital_name":hospital_name,
                         "address": data['location'],
-                        "mobile": data["mobile"],
-                        "landline": data["landline"],
-                        "no_of_ambulances": data["no_of_ambulances"],
+                        "mobile":data["mobile"],
+                        "landline":data["landline"],
+                        "no_of_ambulances":data["no_of_ambulances"],
                         "distance": distance,
-                        "maps_link": maps_link,
-                        "status": "user requested"  # Set the status as "user requested" for a new entry
+                        "maps_link":maps_link
                     }
-                    
-                    get_hospital_collection.insert_one(response)
-                    
                     return Response(response, status=status.HTTP_200_OK)
                 else:
                     return Response({"message": "Failed to calculate distance."}, status=500)
             else:
                 return Response({"message": "No hospital data found in the specified data."}, status=status.HTTP_404_NOT_FOUND)
+       
+            
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise APIException(str(e))
 
+ 
+class user_status(APIView):
+    permission_classes = [CustomIsauthenticated]
 
-
+    def get(self, request):
+        user_id = request.user._id
+        hospital_name = request.data.get('hospital_name')
+        
+        if hospital_name is None:
+            return Response({"message": "Hospital name is missing."}, status=400)
+        
+        try:
+            data = user_requests.find_one({"user_id": user_id, "hospital_name": str(hospital_name)})
+            
+            if data:
+                status = data.get('status')
+                if status:
+                    return Response(status)
+                else:
+                    return Response({"message": "Status not found for the given hospital and user."}, status=404)
+            else:
+                return Response({"message": "Data not found for the given hospital and user."}, status=404)
+        except Exception as e:
+            return Response({"message": str(e)}, status=500)
 
 
 
