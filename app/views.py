@@ -439,7 +439,33 @@ class hospital_request_Accept(APIView):
         else:
             return Response({'error': 'User request not found'}, status=status.HTTP_404_NOT_FOUND)
 
+ 
+    
+class driver_dashboard(APIView):
+    # permission_classes = [DriverCustomIsauthenticated]
+    def get(self, request):
+        user = user_requests.find({})
+        complete_info = []
+        status_to_filter = "accepted"
 
+        for patient in user:
+            if patient.get('status') == status_to_filter:
+                patient_info = {
+                    'user_id': str(patient['user_id']),
+                    'name': patient['name'],
+                    'phone_number': patient['phone_number'],
+                    'registered_location': {
+                        'latitude': patient['registered_location']['latitude'],
+                        'longitude': patient['registered_location']['longitude']
+                    },
+                    'status': patient['status'],
+                    'route_map': {
+                        'maps_link': patient['route_map']['maps_link']
+                    },
+                    'distance': patient['distance'],
+                }
+                complete_info.append(patient_info)
 
+        return Response(complete_info)
 
 

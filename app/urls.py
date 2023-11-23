@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RaiseRequest,hospital_Dash_bord,hospital_request_Accept, Login_View,RegistrationAPIView,NearHospitalsList,get_hospital_details,Userprofileview,get_address_from_long_lat,Userprofileview_update
+from .views import RaiseRequest,driver_dashboard,hospital_Dash_bord,hospital_request_Accept, Login_View,RegistrationAPIView,NearHospitalsList,get_hospital_details,Userprofileview,get_address_from_long_lat,Userprofileview_update
 
 
 urlpatterns = [
@@ -13,6 +13,7 @@ urlpatterns = [
     path(r'user_request/', RaiseRequest.as_view(), name='Register'),
     path(r'accepted_user_request/', hospital_request_Accept.as_view(), name='Register'),
     path(r'get_all_user_requests/', hospital_Dash_bord.as_view(), name='Register'),
+    path(r'driver_dashbord/', driver_dashboard.as_view(), name='Register'),
     
     ]
 
