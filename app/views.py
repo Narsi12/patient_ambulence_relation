@@ -25,7 +25,7 @@ from django.core.files.base import ContentFile
 
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["patient"]
+mydb = myclient["patient_ambulence"]
 mycol1 = mydb['app_driver_entry']
 mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
