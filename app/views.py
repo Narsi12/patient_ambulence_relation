@@ -450,8 +450,8 @@ class hospital_Dash_bord(APIView):
                         'hospital_name': patient['hospital_name']
                     }
                     complete_info.append(patient_info)
-                else:
-                    return Response({'msg':'no patient requests'})
+                # else:
+                #     return Response({'msg':'no patient requests'})
             else:
                 return Response({'msg':'hospital name is missing in user requests'})
         
