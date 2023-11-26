@@ -463,60 +463,75 @@ class hospital_request_Accept(APIView):
 
     def post(self, request):
         hospital_user_id = request.user._id
+        hospital_name_data = mycol2.find_one({"_id":hospital_user_id})
+        hospital_name = hospital_name_data['hospital_name']
+
         request_status = "accepted"
         patient_user_id = request.data.get("patient_user_id", None)
         patient_id = ObjectId(patient_user_id)
-        if not patient_user_id:
-            return Response({'error': 'Patient user ID is missing in the request'}, status=status.HTTP_400_BAD_REQUEST)
-        user_request = user_requests.find_one_and_update(
-            {"user_id": patient_id},
-            {
-                "$set": {
-                    "status": request_status,
-                    "hospital_id": hospital_user_id
+        user_hospital_data_name = user_requests.find_one({"user_id":patient_id})
+        user_hispital_name = user_hospital_data_name['hospital_name']
+        patient_id = ObjectId(patient_user_id)
+        if hospital_name == user_hispital_name:
+            if not patient_user_id:
+                return Response({'error': 'Patient user ID is missing in the request'}, status=status.HTTP_400_BAD_REQUEST)
+            user_request = user_requests.find_one_and_update(
+                {"user_id": patient_id},
+                {
+                    "$set": {
+                        "status": request_status,
+                        "hospital_id": hospital_user_id
+                    }
                 }
-            }
-        )
-        if user_request:
-            return Response({'msg': 'User request is accepted' , 'status':request_status})
+            )
+            if user_request:
+                return Response({'msg': 'User request is accepted' , 'status':request_status})
+            else:
+                return Response({'error': 'User request not found'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response({'error': 'User request not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"msg":"user hospital name is not match"})
 
  
     
 class driver_dashboard(APIView):
     permission_classes = [DriverCustomIsauthenticated]
+
     def get(self, request):
         driver_id = request.user._id
         data = mycol1.find_one({'_id': driver_id})
         hospital_name = data['hospital_name']
+        print("Hospital Name:", hospital_name)
 
-        user = user_requests.find({})
+        user = user_requests.find({
+            'status': 'accepted',
+            'hospital_name': hospital_name
+        })
+
         complete_info = []
-        status_to_filter = "accepted"
-
         for patient in user:
-             
-            if patient.get('status') == status_to_filter and patient.get('hospital_name') == hospital_name :
-                patient_info = {
-                    'user_id': str(patient['user_id']),
-                    'name': patient['name'],
-                    'phone_number': patient['phone_number'],
-                    'registered_location': {
-                        'latitude': patient['registered_location']['latitude'],
-                        'longitude': patient['registered_location']['longitude']
-                    },
-                    'status': patient['status'],
-                    'route_map': {
-                        'maps_link': patient['route_map']['maps_link']
-                    },
-                    'distance': patient['distance'],
-                }
-                complete_info.append(patient_info)
-            else:
-                return Response({'msg':'no patients records'})
+            print("Patient Data:", patient)
+            patient_info = {
+                'user_id': str(patient['user_id']),
+                'name': patient['name'],
+                'phone_number': patient['phone_number'],
+                'registered_location': {
+                    'latitude': patient['registered_location']['latitude'],
+                    'longitude': patient['registered_location']['longitude']
+                },
+                'status': patient['status'],
+                'route_map': {
+                    'maps_link': patient['route_map']['maps_link']
+                },
+                'distance': patient['distance'],
+            }
+            complete_info.append(patient_info)
+        
+        if not complete_info:  # Check if complete_info is empty
+            return Response({'msg': 'No patient records found.'})
 
+        print("Complete Info:", complete_info)
         return Response(complete_info)
+
 
 
 
