@@ -245,7 +245,7 @@ class user_status(APIView):
 
     def get(self, request):
         user_id = request.user._id
-        hospital_name = request.data.get('hospital_name')
+        hospital_name = request.GET.get('hospital_name')
         
         if hospital_name is None:
             return Response({"message": "Hospital name is missing."}, status=400)
@@ -430,6 +430,7 @@ class hospital_Dash_bord(APIView):
         complete_info = []
         
         for patient in user_req:
+            print(patient)
             # Check if 'hospital_name' exists in the patient record
             if 'hospital_name' in patient:
                 if patient['hospital_name'] == hospital_name:
@@ -477,7 +478,7 @@ class hospital_request_Accept(APIView):
             }
         )
         if user_request:
-            return Response({'msg': 'User request is accepted'})
+            return Response({'msg': 'User request is accepted' , 'status':request_status})
         else:
             return Response({'error': 'User request not found'}, status=status.HTTP_404_NOT_FOUND)
 
