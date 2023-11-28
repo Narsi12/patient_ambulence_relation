@@ -25,7 +25,7 @@ from django.core.files.base import ContentFile
 
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["narsimha"]
+mydb = myclient["mouritech"]
 mycol1 = mydb['app_driver_entry']
 mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
@@ -255,8 +255,10 @@ class user_status(APIView):
             
             if data:
                 status = data.get('status')
+                hospital_name_user = hospital_name
+                hospital_mobile = data.get('mobile')
                 if status:
-                    return Response(status)
+                    return Response({"status":status,"hospital_name":hospital_name_user,"hospital_mobile":hospital_mobile})
                 else:
                     return Response({"message": "Status not found for the given hospital and user."}, status=404)
             else:
@@ -353,6 +355,8 @@ class Userprofileview_update(APIView):
             if user is not None:
                 user['_id'] = str(user['_id'])
                 return Response({"Data": user}, status=status.HTTP_200_OK)
+            else:
+                return Response({'msg':"user not found!!"})
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
@@ -380,6 +384,7 @@ class RaiseRequest(APIView):
                     location_dict = data.get('location', {})
                     lat2 = location_dict.get('latitude', None)
                     lon2 = location_dict.get('longitude', None)
+                    mobile = data.get('mobile',None)
                     distance,maps_link = calculate_distance(latitude, longitude, lat2, lon2)
                 else:
                     return Response({'msg':'hospital name mismatch'})
@@ -394,7 +399,9 @@ class RaiseRequest(APIView):
                 "maps_link":maps_link
             },
             "distance": distance,
-            "hospital_name":hospital
+            "hospital_name":hospital,
+            
+            
         }
         existing_user = user_requests.find_one({"user_id": user_id})
 
@@ -411,7 +418,8 @@ class RaiseRequest(APIView):
                 },
                 "distance": distance,
                 "status":"in progress",
-                "hospital_name":hospital
+                "hospital_name":hospital,
+                "hospital_mobile": mobile
             })
 
             return Response(data)
