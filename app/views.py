@@ -204,9 +204,7 @@ class get_hospital_details(APIView):
     def post(self,request,hospital_name=None):
         lat1 = request.GET.get('latitude', None)
         lon1 = request.GET.get('longitude', None)
-        print(hospital_name)
         data =mycol2.find_one({"hospital_name":hospital_name})
-        print(data)
         try:
             if lat1 is None or lon1 is None:
                 return Response({"message": "Latitude or longitude values are missing."}, status=400)
@@ -303,7 +301,6 @@ class Userprofileview_update(APIView):
     def put(self, request, user_type=None):
         try:
             user_id = ObjectId(request.user._id)
-            print(user_id)
              
 
             if user_type is not None:
@@ -338,7 +335,6 @@ class Userprofileview_update(APIView):
                     self.permission_classes = [HospitalCustomIsauthenticated]
                     hospital_data = request.data 
                     info2 = mycol2.find_one({"_id": user_id})
-                    print(info2)
                     email = info2['email']
                     user = mycol2.find_one_and_update({"_id": user_id,"email":email},
                                          {
@@ -420,7 +416,27 @@ class RaiseRequest(APIView):
 
         # adding the user details in user-requests collection
         if existing_user:
-            return Response({"error": "User request already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            if existing_user.get("status") == "completed":
+                user_requests.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "user_id": user_id,
+                        "name": user["name"],
+                        "phone_number": user["phone_number"],
+                        "registered_location": registered_location,
+                        "route_map": {
+                            "maps_link": maps_link
+                        },
+                        "distance": distance,
+                        "status": "in progress",
+                        "hospital_name": hospital,
+                        "hospital_mobile": mobile
+                    }}
+                )
+                return Response(data)
+            else:
+                return Response({"error": "User request already exists and status is not 'completed'"},
+                                status=status.HTTP_400_BAD_REQUEST)
         else:
             user_requests.insert_one({
                 "user_id": user_id,
@@ -453,7 +469,6 @@ class hospital_Dash_bord(APIView):
         complete_info = []
         
         for patient in user_req:
-            print(patient)
             # Check if 'hospital_name' exists in the patient record
             if 'hospital_name' in patient:
                 if patient['hospital_name'] == hospital_name:
