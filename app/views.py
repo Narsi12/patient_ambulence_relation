@@ -597,3 +597,44 @@ class driver_start_button(APIView):
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Something went wrong: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class ride_complete_button(APIView):
+    permission_classes = [DriverCustomIsauthenticated]
+    def post(self,request):
+        try:
+            driver_id = request.user._id
+            driver_data = mycol1.find_one({'_id': driver_id})
+            hospital_name = driver_data.get('hospital_name')  # Driver hospital name
+            satus_up = "completed"
+            patient_user_id = request.data.get("patient_user_id")
+
+            # Ensure patient_user_id is converted to ObjectId
+            if patient_user_id:
+                patient_user_id = ObjectId(patient_user_id)
+
+            user_hospital_data_name = user_requests.find_one({"user_id": patient_user_id})
+            if user_hospital_data_name:
+                patient_reg_hospital_name = user_hospital_data_name.get('hospital_name') 
+
+                if hospital_name == patient_reg_hospital_name:
+                        update_result = user_requests.find_one_and_update(
+                            {"user_id": patient_user_id, "hospital_name": hospital_name, "driver_id": driver_id},
+                            {
+                                "$set": {
+                                    "status": satus_up
+                                }
+                            }
+                        )
+                        if update_result:
+                            return Response({'msg': 'User request is accepted', 'status': satus_up})
+                        else:
+                            return Response({'error': 'User request not found or not updated'}, status=status.HTTP_404_NOT_FOUND)
+                else:
+                    return Response({'error': 'User hospital name does not match'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Something went wrong: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
