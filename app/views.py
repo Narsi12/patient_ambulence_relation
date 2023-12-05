@@ -25,7 +25,7 @@ from django.core.files.base import ContentFile
 
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["narsimha1"]
+mydb = myclient["narsimha"]
 mycol1 = mydb['app_driver_entry']
 mycol2 = mydb['app_hospital']
 mycol3 = mydb['app_user_entry']
@@ -254,7 +254,7 @@ class user_status(APIView):
             if data:
                 status = data.get('status')
                 hospital_name_user = hospital_name
-                hospital_mobile = data.get('mobile')
+                hospital_mobile = data.get('hospital_mobile')
                 if status:
                     return Response({"status":status,"hospital_name":hospital_name_user,"hospital_mobile":hospital_mobile})
                 else:
